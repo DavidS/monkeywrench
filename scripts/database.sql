@@ -4,7 +4,7 @@ SET client_encoding = 'UTF8';
 -- DROP DATABASE IF EXISTS builder;
 
 -- CREATE SCHEMA public;
-CREATE DATABASE builder OWNER builder;
+CREATE DATABASE builder;
 
 \connect builder
 

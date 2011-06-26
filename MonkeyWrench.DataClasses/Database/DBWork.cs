@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace MonkeyWrench.DataClasses
 {
@@ -43,6 +44,10 @@ namespace MonkeyWrench.DataClasses
 			string id, file;
 			char [] tr = new char [] { '(', ')', ' ' };
 			List<string> failures = new List<string> ();
+			int testsRun = 0, testFailures = 0, notRun = 0;
+			float time = 0;
+			// example line to parse: "Tests run: 8842, Failures: 14, Not run: 57, Time: 55.898 seconds"
+			Regex testsRunPattern = new Regex("^Tests run: (?<testsRun>\\d+), Failures: (?<testFailures>\\d+), Not run: (?<notRun>\\d+), Time: (?<time>\\d+.?\\d*) seconds", RegexOptions.Compiled);
 
 			try {
 				while ((line = reader.ReadLine ()) != null) {
@@ -65,21 +70,31 @@ namespace MonkeyWrench.DataClasses
 						}
 						failures.Add (file + " " + id);
 					}
-					if (line.StartsWith ("Tests run")) {
-						summary = line;
-						if (failures.Count > 0) {
-							summary += " (Failures: ";
-							for (int i = 0; i < failures.Count; i++) {
-								summary += failures [i];
-								if (i < failures.Count - 1)
-									summary += ", ";
-							}
-							summary += ")";
-						}
-						return;
+					MatchCollection matches = testsRunPattern.Matches(line);
+					if (matches.Count > 0) {
+						Match match = matches[0];
+						testsRun += Int32.Parse(match.Groups["testsRun"].Value);
+						testFailures += Int32.Parse(match.Groups["testFailures"].Value);
+						notRun += Int32.Parse(match.Groups["notRun"].Value);
+						time += Single.Parse(match.Groups["time"].Value);
 					}
 				}
-				summary = "-";
+
+				if (testsRun > 0) {
+					summary = string.Format ("Tests run: {0}, Failures: {1}, Not run: {2}, Time: {3:0.00} seconds", testsRun, testFailures, notRun, time);
+				} else {
+					summary = "-";
+				}
+
+				if (failures.Count > 0) {
+					summary += " (Failures: ";
+					for (int i = 0; i < failures.Count; i++) {
+						summary += failures [i];
+						if (i < failures.Count - 1)
+							summary += ", ";
+					}
+					summary += ")";
+				}
 			} catch (Exception ex) {
 				summary = ex.Message;
 			}
